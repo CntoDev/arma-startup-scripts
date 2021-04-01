@@ -95,9 +95,6 @@ function Get-ModList($type) {
     }
 }
 
-
-# First Setup - 
-# https://docs.microsoft.com/en-us/powershell/scripting/developer/cmdlet/approved-verbs-for-windows-powershell-commands?view=powershell-7.1
 function Initialize-Server {
     # Create userconfig folder in arma3 folder, if it doesn't exist:
     if (-not (Test-Path "$armaPath\userconfig")) {
@@ -112,6 +109,8 @@ function Initialize-Server {
 function Start-Server($type,$getLatestCBA,$useHC) {
     $mods = Get-ModList($type)
     $modlist = $mods -Split(",")
+    Write-Host "Modlist:"
+    $modlist
     # Force overwrite cba_settings.sqf if requested
     if ($getLatestCBA -eq "yes") {
         Write-Host "Downloading latest CBA Settings from Github..."
@@ -121,10 +120,10 @@ function Start-Server($type,$getLatestCBA,$useHC) {
         foreach($i in 1..$useHC) {
             Write-Host "Starting headless client $i..."
             Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=$serverPassword -mod=`"$mods`""
+            Start-Sleep 3
         }
     }
-    Write-Host "Starting the server with modset $type - Modlist:"
-    $modlist
+    Write-Host "Starting the server with modset $type"
     Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg -mod=`"$mods`""
 }
 
