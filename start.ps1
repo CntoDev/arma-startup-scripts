@@ -9,10 +9,10 @@ $mainRepoPath = "X:\Games\steamapps\common\Arma 3\Main-Repo"
 $campaignRepoPath = "X:\Games\steamapps\common\Arma 3\Campaign-Repo"
 # Dev cnto repo path (optional)
 $devRepoPath = "X:\Games\steamapps\common\Arma 3\Dev-Repo"
-# Number of HCs: number of headless clients you want. 0 for none.
+# Number of HCs: number of headless clients you want to use. 0 for none.
 $numHC = 1
 # Use latest CBA settings: yes/no
-$useLatestCBA = "no"
+$useLatestCBA = "yes"
 # Server password defined in server.cfg
 $serverPassword = "cnto"
 
@@ -24,15 +24,16 @@ $configDir = "$currentLocation\configDir"
 $cbaSettingsURL = "https://raw.githubusercontent.com/CntoDev/cba-settings-lock/master/cba_settings_userconfig/cba_settings.sqf"
 $commonServerParameters = "-port 2302 -noSplash -noLand -enableHT -hugePages -profiles=$configDir\profiles"
 
-# Functions
 function Test-Mods($repoName, $repoPath) {
     if ($modRepo -like "*$repoName*") {
         if ([string]::IsNullOrWhiteSpace($repoPath)) {
-            Write-Host "You've set `$modrepo to $modRepo, but the $reponame repo variable is invalid or empty."
+            Write-Error "ERROR! You've set `$modrepo to $modRepo, but the $reponame repo variable is invalid or empty."
+            Start-Sleep 10
             exit
         }
         elseif (-Not (Test-Path $repoPath)) {
-            Write-Host "You've set `$modrepo to $modRepo, but the $reponame repo directory is invalid or empty."
+            Write-Error "ERROR! You've set `$modrepo to $modRepo, but the $reponame repo directory is invalid or does not exist."
+            Start-Sleep 10
             exit
         }
         return Get-ChildItem $repoPath
@@ -43,6 +44,19 @@ function Test-Mods($repoName, $repoPath) {
 $mainMods=$(Test-Mods -repoName "main" -repoPath $mainRepoPath)
 $devMods=$(Test-Mods -repoName "dev" -repoPath $devRepoPath)
 $campaignMods=$(Test-Mods -repoName "campaign" -repoPath $campaignRepoPath)
+
+# Also check the $armaPath variable and if arma3server.exe exists.
+if ([string]::IsNullOrWhiteSpace($armaPath)) {
+    Write-Error "The `$armaPath variable is invalid or empty."
+    Start-Sleep 10
+    exit
+}
+elseif (-Not (Test-Path "$armaPath\arma3server.exe")) {
+    Write-Error "You've set `$armaPath to $armaPath, but the directory is invalid or does not include arma3server.exe."
+    Start-Sleep 10
+    exit
+}
+
 
 function Get-Mods($modsObject) {
     $modList = $modsObject | Group-Object -Property Directory | ForEach-Object {
@@ -56,7 +70,7 @@ function Get-Mods($modsObject) {
 function Get-DevModDiff() {
     # If dev folder is empty, just return the main mods. Otherwise the Compare-Object below will crash.
     if (($devMods | Measure-Object).Count -eq 0) {
-        Write-Host "Dev repo is empty."
+        Write-Warning "Dev repo directory is empty but `$modrepo is set to $modRepo."
         return Get-Mods($mainMods)
     }
     $devDiff = Compare-Object -ReferenceObject $mainMods -DifferenceObject $devMods -IncludeEqual -ExcludeDifferent -PassThru
@@ -97,9 +111,10 @@ function Initialize-Server {
 
 function Start-Server($type,$getLatestCBA,$useHC) {
     $mods = Get-ModList($type)
+    $modlist = $mods -Split(",")
     # Force overwrite cba_settings.sqf if requested
     if ($getLatestCBA -eq "yes") {
-        Write-Host "Downloading latest CBA Settings from Github"
+        Write-Host "Downloading latest CBA Settings from Github..."
         Invoke-RestMethod -Uri $cbaSettingsURL -OutFile "$armaPath\userconfig\cba_settings.sqf"
     }
     if ($useHC -gt 0) {
@@ -108,10 +123,12 @@ function Start-Server($type,$getLatestCBA,$useHC) {
             Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=$serverPassword -mod=`"$mods`""
         }
     }
-    Write-Host "Starting the server with modset $type - $mods"
+    Write-Host "Starting the server with modset $type - Modlist:"
+    $modlist
     Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg -mod=`"$mods`""
-
 }
 
 Initialize-Server
 Start-Server -type $modRepo -getLatestCBA $useLatestCBA -useHC $numHC
+# Close Powershell window after 60 seconds, to let the user see info.
+Start-Sleep 60

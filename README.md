@@ -7,8 +7,11 @@ The only requirement is that your computer has Powershell. The script has only t
 
 Instructions
 ------------
-The start.ps1 will require some modifications from the user to get started. 
-1. Open the script in your favorite text editor
+To get started, download the GIT repo from: https://github.com/CntoDev/arma-startup-scripts/archive/refs/heads/main.zip
+Unzip and place the resulting directory where ever you'd like to store it.
+
+The `start.ps1` script will require some modifications from the user to get started. 
+1. Open `start.ps1` in your favorite text editor
 2. Modify `$modRepo` and select which modsets you're planning to use.
 3. Set `$armaPath` to the path of your ARMA3 installation. Don't put a slash in the end.
 4. Set `$mainRepoPath` (and optionally `$campaignRepoPath` and `$devRepoPath`) to the path correct path. Again, don't put a slash in the end. For most of you, just copy the path that's in your ARMA3Sync:
