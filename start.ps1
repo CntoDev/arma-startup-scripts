@@ -1,23 +1,22 @@
 # --- User Config ---
 # Which mod repos do you want to run? Pick between: main, main+dev, main+campaign or main+dev+campaign
 $modRepo = "main+dev"
-# WE DEAL WITH ABSOLUTES!
-# $configLocation = "C:\Users\Gandolf\Documents\GIT-CNTO\testscript"
+# Path to Arma3
+$armaPath = "X:\Games\steamapps\common\Arma 3"
 # Main cnto repo directory path
 $mainRepoPath = "X:\Games\steamapps\common\Arma 3\Main-Repo"
 # Campaign cnto repo path (optional)
 $campaignRepoPath = "X:\Games\steamapps\common\Arma 3\Campaign-Repo"
 # Dev cnto repo path (optional)
 $devRepoPath = "X:\Games\steamapps\common\Arma 3\Dev-Repo"
-# Path to Arma3
-$armaPath = "X:\Games\steamapps\common\Arma 3"
 # Number of HCs: number of headless clients you want. 0 for none.
 $numHC = 1
 # Use latest CBA settings: yes/no
 $useLatestCBA = "no"
-# Config directory name: dedicated-config (this is the "related directory" from above)
+# Server password defined in server.cfg
+$serverPassword = "cnto"
 
-# Static Config
+# --- Static Config ---
 # Set location to the folder where the start script resides
 Set-Location $PSScriptRoot
 $currentLocation = Get-Location
@@ -25,38 +24,26 @@ $configDir = "$currentLocation\configDir"
 $cbaSettingsURL = "https://raw.githubusercontent.com/CntoDev/cba-settings-lock/master/cba_settings_userconfig/cba_settings.sqf"
 $commonServerParameters = "-port 2302 -noSplash -noLand -enableHT -hugePages -profiles=$configDir\profiles"
 
-# Test Mods
-if (Test-Path $mainRepoPath) {
-    $mainMods = Get-ChildItem $mainRepoPath
-}
-else {
-    Write-Host "The main repo path is invalid!"
-    exit
-}
-if ($modRepo -like "*dev*") {
-    if ([string]::IsNullOrWhiteSpace($devRepoPath)) {
-        Write-Host "You've set `$modrepo to $modRepo, but the dev repo variable is invalid or empty."
-        exit
-    }
-    elseif (-Not (Test-Path $devRepoPath)) {
-        Write-Host "You've set `$modrepo to $modRepo, but the dev repo directory is invalid or empty."
-        exit
-    }
-    $devMods = Get-ChildItem $devRepoPath
-}
-if ($modRepo -like "*campaign*") {
-    if ([string]::IsNullOrWhiteSpace($campaignRepoPath)) {
-        Write-Host "You've set `$modrepo to $modRepo, but the campaign repo variable is invalid or empty."
-        exit
-    }
-    elseif (-Not (Test-Path $campaignRepoPath)) {
-        Write-Host "You've set `$modrepo to $modRepo, but the campaign repo directory is invalid or empty."
-        exit
-    }
-    $campaignMods = Get-ChildItem $campaignRepoPath
-} 
-
 # Functions
+function Test-Mods($repoName, $repoPath) {
+    if ($modRepo -like "*$repoName*") {
+        if ([string]::IsNullOrWhiteSpace($repoPath)) {
+            Write-Host "You've set `$modrepo to $modRepo, but the $reponame repo variable is invalid or empty."
+            exit
+        }
+        elseif (-Not (Test-Path $repoPath)) {
+            Write-Host "You've set `$modrepo to $modRepo, but the $reponame repo directory is invalid or empty."
+            exit
+        }
+        return Get-ChildItem $repoPath
+    }
+}
+
+# Test Mods with above function
+$mainMods=$(Test-Mods -repoName "main" -repoPath $mainRepoPath)
+$devMods=$(Test-Mods -repoName "dev" -repoPath $devRepoPath)
+$campaignMods=$(Test-Mods -repoName "campaign" -repoPath $campaignRepoPath)
+
 function Get-Mods($modsObject) {
     $modList = $modsObject | Group-Object -Property Directory | ForEach-Object {
         @(
@@ -118,14 +105,13 @@ function Start-Server($type,$getLatestCBA,$useHC) {
     if ($useHC -gt 0) {
         foreach($i in 1..$useHC) {
             Write-Host "Starting headless client $i..."
-            Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=cnto -mod=`"$mods`""
+            Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=$serverPassword -mod=`"$mods`""
         }
     }
     Write-Host "Starting the server with modset $type - $mods"
     Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg -mod=`"$mods`""
 
 }
-
 
 Initialize-Server
 Start-Server -type $modRepo -getLatestCBA $useLatestCBA -useHC $numHC
