@@ -2,14 +2,12 @@
 
 *arma-startup-scripts* a GIT repository with the purpose of helping our developers and mission makers to quickly setup a local development ARMA3 server. 
 
-The only requirement is that your computer has Powershell. The script has only tested on Windows 10, so if you're on Windows 7 give it a try and report back with your findings!
+The only requirement is that your computer has Powershell. The script has only been tested on Windows 10, so if you're on Windows 7 give it a try and report back with your findings!
 
 
 Instructions
 ------------
-To get started, download the GIT repo from: https://github.com/CntoDev/arma-startup-scripts/archive/refs/heads/main.zip
-
-Unzip and place the resulting directory where ever you'd like to store it.
+To get started, download the GIT repo from: https://github.com/CntoDev/arma-startup-scripts/archive/refs/heads/main.zip  Unzip and place the resulting directory where ever you'd like to store it.
 
 The `start.ps1` script will require some modifications from the user to get started. 
 1. Open `start.ps1` in your favorite text editor
