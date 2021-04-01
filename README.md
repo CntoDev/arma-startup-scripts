@@ -8,6 +8,7 @@ The only requirement is that your computer has Powershell. The script has only t
 Instructions
 ------------
 To get started, download the GIT repo from: https://github.com/CntoDev/arma-startup-scripts/archive/refs/heads/main.zip
+
 Unzip and place the resulting directory where ever you'd like to store it.
 
 The `start.ps1` script will require some modifications from the user to get started. 
