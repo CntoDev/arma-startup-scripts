@@ -22,3 +22,14 @@ The `start.ps1` script will require some modifications from the user to get star
 7. Finally, if you've changed the server password in server.cfg, edit `$serverPassword` to the correct password.
 
 You're now good to go! Right-click start.ps1 and select "Run with Powershell" and the server will start if they're no errors.
+
+
+Issues
+------------
+If you haven't ran Powershell scripts before you might encounter an error telling you: `The file start.ps1 is not digitally signed. You cannot run this script on the current system.`
+
+To fix this, we need to fix a few settings:
+1. Open Powershell as an administrator
+2. Navigate to the script folder. Type `cd` followed by the path to the `arma-startup-scripts` folder. Example: `cd Z:\Git\arma-startup-scripts\`
+3. Change settings so that only remote scripts have to be signed: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned`
+4. Change start.ps1 into a local script `Unblock-File start.ps1`
