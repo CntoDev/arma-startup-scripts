@@ -3,18 +3,18 @@
 $modRepo = "main+dev"
 # Path to Arma3
 $armaPath = "X:\Games\steamapps\common\Arma 3"
-# Main cnto repo directory path
+# Main repo directory path
 $mainRepoPath = "X:\Games\steamapps\common\Arma 3\Main-Repo"
-# Campaign cnto repo path (optional)
+# Campaign repo path (optional)
 $campaignRepoPath = "X:\Games\steamapps\common\Arma 3\Campaign-Repo"
-# Dev cnto repo path (optional)
+# Dev repo path (optional)
 $devRepoPath = "X:\Games\steamapps\common\Arma 3\Dev-Repo"
 # Number of HCs: number of headless clients you want to use. 0 for none.
 $numHC = 1
 # Use latest CBA settings: yes/no
 $useLatestCBA = "yes"
 # Server password defined in server.cfg
-$serverPassword = "cnto"
+$serverPassword = "localpass"
 
 # --- Static Config ---
 # Set location to the folder where the start script resides
@@ -23,6 +23,8 @@ $currentLocation = Get-Location
 $configDir = "$currentLocation\configDir"
 $cbaSettingsURL = "https://raw.githubusercontent.com/CntoDev/cba-settings-lock/master/cba_settings_userconfig/cba_settings.sqf"
 $commonServerParameters = "-port 2302 -noSplash -noLand -enableHT -hugePages -profiles=$configDir\profiles"
+# Fix TLS bug
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-Mods($repoName, $repoPath) {
     if ($modRepo -like "*$repoName*") {
@@ -36,8 +38,10 @@ function Test-Mods($repoName, $repoPath) {
             Start-Sleep 10
             exit
         }
+        Write-Host "$repoName is activated." 
         return Get-ChildItem $repoPath
     }
+    Write-Host "$repoName not activated." 
 }
 
 # Test Mods with above function
@@ -62,7 +66,7 @@ function Get-Mods($modsObject) {
     $modList = $modsObject | Group-Object -Property Directory | ForEach-Object {
         @(
             $_.Group | Resolve-Path | Convert-Path
-        )-join','
+        )-join';'
     }
     return $modList
 }
@@ -74,11 +78,16 @@ function Get-DevModDiff() {
         return Get-Mods($mainMods)
     }
     $devDiff = Compare-Object -ReferenceObject $mainMods -DifferenceObject $devMods -IncludeEqual -ExcludeDifferent -PassThru
+    if (($devDiff | Measure-Object).Count -eq 0) {
+        Write-Host "No main and dev mods are in conflict."
+        return Get-Mods($mainMods)
+    }
     $modDiffList = Compare-Object -ReferenceObject $devDiff -DifferenceObject $mainMods -PassThru | Group-Object -Property Directory | ForEach-Object {
         @(
             $_.Group | Resolve-Path | Convert-Path
-        )-join','
+        )-join';'
     }
+    Write-Warning "A few main and dev mods are in conflict. Resolving..."
     return "$($modDiffList)"+ "," +"$(Get-Mods($devMods))"
 }
 
@@ -108,23 +117,29 @@ function Initialize-Server {
 
 function Start-Server($type,$getLatestCBA,$useHC) {
     $mods = Get-ModList($type)
-    $modlist = $mods -Split(",")
+    $modlist = $mods -Split(";")
     Write-Host "Modlist:"
     $modlist
     # Force overwrite cba_settings.sqf if requested
     if ($getLatestCBA -eq "yes") {
         Write-Host "Downloading latest CBA Settings from Github..."
-        Invoke-RestMethod -Uri $cbaSettingsURL -OutFile "$armaPath\userconfig\cba_settings.sqf"
+        try {
+            Invoke-RestMethod -Uri $cbaSettingsURL -OutFile "$armaPath\userconfig\cba_settings.sqf" -ErrorAction Stop
+        } catch {
+            Write-Warning "Unable to fetch latest CBA! Exiting... "
+            Write-Warning $Error[0]
+            exit
+        }
     }
     if ($useHC -gt 0) {
         foreach($i in 1..$useHC) {
             Write-Host "Starting headless client $i..."
-            Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=$serverPassword -mod=`"$mods`""
+            Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=$serverPassword `"-mod=$mods`""
             Start-Sleep 3
         }
     }
     Write-Host "Starting the server with modset $type"
-    Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg -mod=`"$mods`""
+    Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg `"-mod=$mods`""
 }
 
 Initialize-Server
