@@ -23,6 +23,9 @@ $currentLocation = Get-Location
 $configDir = "$currentLocation\configDir"
 $cbaSettingsURL = "https://raw.githubusercontent.com/CntoDev/cba-settings-lock/master/cba_settings_userconfig/cba_settings.sqf"
 $commonServerParameters = "-port 2302 -noSplash -noLand -enableHT -hugePages -profiles=$configDir\profiles"
+# Use 64-bit exe if possible
+$gameExe = if ([Environment]::Is64BitOperatingSystem) { "arma3server_x64.exe" } else { "arma3server.exe" }
+$gameExeFullPath = Join-Path "$armaPath" "$gameExe"
 # Fix TLS bug
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -49,14 +52,14 @@ $mainMods=$(Test-Mods -repoName "main" -repoPath $mainRepoPath)
 $devMods=$(Test-Mods -repoName "dev" -repoPath $devRepoPath)
 $campaignMods=$(Test-Mods -repoName "campaign" -repoPath $campaignRepoPath)
 
-# Also check the $armaPath variable and if arma3server.exe exists.
+# Also check the $armaPath variable and if game exe exists.
 if ([string]::IsNullOrWhiteSpace($armaPath)) {
     Write-Error "The `$armaPath variable is invalid or empty."
     Start-Sleep 10
     exit
 }
-elseif (-Not (Test-Path "$armaPath\arma3server.exe")) {
-    Write-Error "You've set `$armaPath to $armaPath, but the directory is invalid or does not include arma3server.exe."
+elseif (-Not (Test-Path "$gameExeFullPath")) {
+    Write-Error "You've set `$armaPath to $armaPath, but the directory is invalid or does not include $gameExe."
     Start-Sleep 10
     exit
 }
@@ -134,12 +137,12 @@ function Start-Server($type,$getLatestCBA,$useHC) {
     if ($useHC -gt 0) {
         foreach($i in 1..$useHC) {
             Write-Host "Starting headless client $i..."
-            Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=$serverPassword `"-mod=$mods`""
+            Start-Process -FilePath "$gameExeFullPath" -ArgumentList "$commonServerParameters -client -connect=127.0.0.1 -password=$serverPassword `"-mod=$mods`""
             Start-Sleep 3
         }
     }
     Write-Host "Starting the server with modset $type"
-    Start-Process -FilePath "$armapath\arma3server.exe" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg `"-mod=$mods`""
+    Start-Process -FilePath "$gameExeFullPath" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg `"-mod=$mods`""
 }
 
 Initialize-Server
