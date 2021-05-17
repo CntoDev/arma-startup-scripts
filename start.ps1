@@ -91,7 +91,7 @@ function Get-DevModDiff() {
         )-join';'
     }
     Write-Warning "A few main and dev mods are in conflict. Resolving..."
-    return "$($modDiffList)"+ "," +"$(Get-Mods($devMods))"
+    return "$($modDiffList)"+ ";" +"$(Get-Mods($devMods))"
 }
 
 # Awful switch statement to get correct mods - preferably move $modrepos to an array
@@ -101,9 +101,9 @@ function Get-ModList($type) {
 
         "main+dev" {return "$(Get-DevModDiff)"}
 
-        "main+campaign" {return "$(Get-Mods($mainMods))"+ "," +"$(Get-Mods($campaignMods))"}
+        "main+campaign" {return "$(Get-Mods($mainMods))"+ ";" +"$(Get-Mods($campaignMods))"}
 
-        "main+dev+campaign" {return "$(Get-DevModDiff)"+ ',' +"$(Get-Mods($campaignMods))"}
+        "main+dev+campaign" {return "$(Get-DevModDiff)"+ ';' +"$(Get-Mods($campaignMods))"}
     }
 }
 
