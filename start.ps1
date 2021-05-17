@@ -1,5 +1,7 @@
+param ($repo)
 # --- User Config ---
-# Which mod repos do you want to run? Mix and match between: main, dev, campaign, gm (Cold War Germany) *or* vn (S.O.G. Prairie Fire)
+# Which mod repos do you want to run? Can be overriden by launching the script with the "-repo" parameter
+# Mix and match between: main, dev, campaign, gm (Cold War Germany) *or* vn (S.O.G. Prairie Fire)
 $modRepo = "main+dev"
 # Path to Arma3
 $armaPath = "X:\Games\steamapps\common\Arma 3"
@@ -28,6 +30,11 @@ $gameExe = if ([Environment]::Is64BitOperatingSystem) { "arma3server_x64.exe" } 
 $gameExeFullPath = Join-Path "$armaPath" "$gameExe"
 # Fix TLS bug
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# Add support to override $modRepo with parameter at launch
+if (-Not ([string]::IsNullOrWhiteSpace($repo))) {
+    Write-Host "Overriding modRepo in config with -repos launch parameter: $repo"
+    $modRepo = $repo
+}
 # Fix requirement to use different ARMA3 branch if creator DLC is being used
 if ($modRepo -like "*gm*" -or $modRepo -like "*vn*") {
     $commonServerParameters += " -beta creatordlc"
