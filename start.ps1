@@ -126,7 +126,7 @@ function Get-ModList($type) {
     if ($type -like "*vn*") {
         $modRepoList += ';' +"vn"
     }
-    elseif ($type -like "*gm*") {
+    if ($type -like "*gm*") {
         $modRepoList += ';' +"gm"
     }
     
