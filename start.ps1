@@ -1,7 +1,7 @@
 param ($repo)
 # --- User Config ---
 # Which mod repos do you want to run? Can be overriden by launching the script with the "-repo" parameter
-# Mix and match between: main, dev, campaign, gm (Cold War Germany) *or* vn (S.O.G. Prairie Fire)
+# Mix and match between: main, dev, campaign, gm (Cold War Germany), vn (S.O.G. Prairie Fire)
 $modRepo = "main+dev"
 # Path to Arma3
 $armaPath = "X:\Games\steamapps\common\Arma 3"
@@ -35,8 +35,31 @@ if (-Not ([string]::IsNullOrWhiteSpace($repo))) {
     Write-Host "Overriding modRepo in config with -repos launch parameter: $repo"
     $modRepo = $repo
 }
+
+# Check if $modRepo is properly setup, if it is then prefix and postfix the string for more accurate matching.
+if ([string]::IsNullOrWhiteSpace($modRepo)) {
+    Write-Error "The `$modRepo variable is invalid or empty."
+    Start-Sleep 10
+    exit
+}
+else {
+    $prettyModRepo = $modRepo
+    $modRepo = "+" + $modRepo + "+"
+}
+# Check if the $armaPath variable exists and if game exe exists.
+if ([string]::IsNullOrWhiteSpace($armaPath)) {
+    Write-Error "The `$armaPath variable is invalid or empty."
+    Start-Sleep 10
+    exit
+}
+elseif (-Not (Test-Path "$gameExeFullPath")) {
+    Write-Error "You've set `$armaPath to $armaPath, but the directory is invalid or does not include $gameExe."
+    Start-Sleep 10
+    exit
+}
+
 # Fix requirement to use different ARMA3 branch if creator DLC is being used
-if ($modRepo -like "*gm*" -or $modRepo -like "*vn*") {
+if ($modRepo -like "*+gm+*" -or $modRepo -like "*+vn+*") {
     $commonServerParameters += " -beta creatordlc"
 }
 
@@ -62,19 +85,6 @@ function Test-Mods($repoName, $repoPath) {
 $mainMods=$(Test-Mods -repoName "main" -repoPath $mainRepoPath)
 $devMods=$(Test-Mods -repoName "dev" -repoPath $devRepoPath)
 $campaignMods=$(Test-Mods -repoName "campaign" -repoPath $campaignRepoPath)
-
-# Also check the $armaPath variable and if game exe exists.
-if ([string]::IsNullOrWhiteSpace($armaPath)) {
-    Write-Error "The `$armaPath variable is invalid or empty."
-    Start-Sleep 10
-    exit
-}
-elseif (-Not (Test-Path "$gameExeFullPath")) {
-    Write-Error "You've set `$armaPath to $armaPath, but the directory is invalid or does not include $gameExe."
-    Start-Sleep 10
-    exit
-}
-
 
 function Get-Mods($modsObject) {
     $modList = $modsObject | Group-Object -Property Directory | ForEach-Object {
@@ -107,10 +117,10 @@ function Get-DevModDiff() {
 
 # Rewrite Get-ModList to use array, both for $modRepoList and $type/$modRepo
 function Get-ModList($type) {
-    if ($type -like "*main*" -and $type -like "*dev*") {
+    if ($type -like "*+main+*" -and $type -like "*+dev+*") {
         $modRepoList = "$(Get-DevModDiff)"
     } 
-    elseif ($type -like "*main*") {
+    elseif ($type -like "*+main+*") {
         $modRepoList = "$(Get-Mods($mainMods))"
     }
     else {
@@ -118,15 +128,15 @@ function Get-ModList($type) {
         exit
     }
 
-    if ($type -like "*campaign*") {
+    if ($type -like "*+campaign+*") {
         $modRepoList += ';' +"$(Get-Mods($campaignMods))"
     }
     
     # Creator DLCs
-    if ($type -like "*vn*") {
+    if ($type -like "*+vn+*") {
         $modRepoList += ';' +"vn"
     }
-    if ($type -like "*gm*") {
+    if ($type -like "*+gm+*") {
         $modRepoList += ';' +"gm"
     }
     
@@ -167,7 +177,7 @@ function Start-Server($type,$getLatestCBA,$useHC) {
             Start-Sleep 3
         }
     }
-    Write-Host "Starting the server with modset $type"
+    Write-Host "Starting the server with modset $prettyModRepo"
     Start-Process -FilePath "$gameExeFullPath" -ArgumentList "$commonServerParameters -filePatching -name=server -config=$configDir\server.cfg -cfg=$configDir\basic.cfg `"-mod=$mods`""
 }
 
