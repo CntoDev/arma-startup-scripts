@@ -107,7 +107,6 @@ function Get-DevModDiff() {
 
 # Rewrite Get-ModList to use array, both for $modRepoList and $type/$modRepo
 function Get-ModList($type) {
-    #if (main + dev exists then do GetDevModDiff)
     if ($type -like "*main*" -and $type -like "*dev*") {
         $modRepoList = "$(Get-DevModDiff)"
     } 
@@ -122,7 +121,8 @@ function Get-ModList($type) {
     if ($type -like "*campaign*") {
         $modRepoList += ';' +"$(Get-Mods($campaignMods))"
     }
-
+    
+    # Creator DLCs
     if ($type -like "*vn*") {
         $modRepoList += ';' +"vn"
     }
