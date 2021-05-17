@@ -1,5 +1,5 @@
 # --- User Config ---
-# Which mod repos do you want to run? Pick between: main, main+dev, main+campaign or main+dev+campaign
+# Which mod repos do you want to run? Mix and match between: main, dev, campaign, gm (Cold War Germany) *or* vn (S.O.G. Prairie Fire)
 $modRepo = "main+dev"
 # Path to Arma3
 $armaPath = "X:\Games\steamapps\common\Arma 3"
@@ -10,9 +10,9 @@ $campaignRepoPath = "X:\Games\steamapps\common\Arma 3\Campaign-Repo"
 # Dev repo path (optional)
 $devRepoPath = "X:\Games\steamapps\common\Arma 3\Dev-Repo"
 # Number of HCs: number of headless clients you want to use. 0 for none.
-$numHC = 1
+$numHC = 0
 # Use latest CBA settings: yes/no
-$useLatestCBA = "yes"
+$useLatestCBA = "no"
 # Server password defined in server.cfg
 $serverPassword = "localpass"
 
@@ -28,6 +28,10 @@ $gameExe = if ([Environment]::Is64BitOperatingSystem) { "arma3server_x64.exe" } 
 $gameExeFullPath = Join-Path "$armaPath" "$gameExe"
 # Fix TLS bug
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# Fix requirement to use different ARMA3 branch if creator DLC is being used
+if ($modRepo -like "*gm*" -or $modRepo -like "*vn*") {
+    $commonServerParameters += " -beta creatordlc"
+}
 
 function Test-Mods($repoName, $repoPath) {
     if ($modRepo -like "*$repoName*") {
@@ -94,17 +98,32 @@ function Get-DevModDiff() {
     return "$($modDiffList)"+ ";" +"$(Get-Mods($devMods))"
 }
 
-# Awful switch statement to get correct mods - preferably move $modrepos to an array
+# Rewrite Get-ModList to use array, both for $modRepoList and $type/$modRepo
 function Get-ModList($type) {
-    switch ($type) {
-        "main" {return "$(Get-Mods($mainMods))"}
-
-        "main+dev" {return "$(Get-DevModDiff)"}
-
-        "main+campaign" {return "$(Get-Mods($mainMods))"+ ";" +"$(Get-Mods($campaignMods))"}
-
-        "main+dev+campaign" {return "$(Get-DevModDiff)"+ ';' +"$(Get-Mods($campaignMods))"}
+    #if (main + dev exists then do GetDevModDiff)
+    if ($type -like "*main*" -and $type -like "*dev*") {
+        $modRepoList = "$(Get-DevModDiff)"
+    } 
+    elseif ($type -like "*main*") {
+        $modRepoList = "$(Get-Mods($mainMods))"
     }
+    else {
+        Write-Error "You didn't specify a valid modRepo string. Missing `"main`""
+        exit
+    }
+
+    if ($type -like "*campaign*") {
+        $modRepoList += ';' +"$(Get-Mods($campaignMods))"
+    }
+
+    if ($type -like "*vn*") {
+        $modRepoList += ';' +"vn"
+    }
+    elseif ($type -like "*gm*") {
+        $modRepoList += ';' +"gm"
+    }
+    
+    return $modRepoList
 }
 
 function Initialize-Server {
