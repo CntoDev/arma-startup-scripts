@@ -32,7 +32,7 @@ $gameExeFullPath = Join-Path "$armaPath" "$gameExe"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 # Add support to override $modRepo with parameter at launch
 if (-Not ([string]::IsNullOrWhiteSpace($repo))) {
-    Write-Host "Overriding modRepo in config with -repos launch parameter: $repo"
+    Write-Host "Overriding modRepo in config with -repo launch parameter: $repo"
     $modRepo = $repo
 }
 
